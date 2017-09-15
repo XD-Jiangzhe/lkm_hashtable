@@ -6,6 +6,8 @@
 #include <linux/module.h>
 #include <linux/proc_fs.h>
 #include <linux/uaccess.h>
+#include <linux/version.h>
+#include <linux/slab.h>
 #include <linux/list.h>
 
 
@@ -105,15 +107,23 @@ static int hashtable_search_product_by_name(
     struct product_t **product_data_buf)
 {
     size_t tidx;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
     struct product_t *each_product = NULL;
     struct hlist_node *each_hnode;
+#else
+    struct product_t *each_product;
+#endif
 
 
     // 取得要放在哪個雜湊列.
     hashtable_hash(product_name, &tidx);
 
     // 逐一比對列上的節點.
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
     hlist_for_each_entry(each_product, each_hnode, product_hash_table + tidx, hnode)
+#else
+    hlist_for_each_entry(each_product, product_hash_table + tidx, hnode)
+#endif
     {
         if(strcmp(product_name, each_product->name) == 0)
             break;
@@ -122,10 +132,14 @@ static int hashtable_search_product_by_name(
     *hash_table_index_buf = tidx;
     *product_data_buf = each_product;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
     // 如果在 product_hash_table 有節點存在而且 hlist_for_each_entry() 沒有找到符合的,
     // each_product 會停留在串列的最後一個節點, each_hnode 才會是 NULL,
     // 必須使用 each_hnode 判斷是否沒有符合的節點.
     return each_hnode == NULL ? -1 : 0;
+#else
+    return each_product == NULL ? -1 : 0;
+#endif
 }
 
 // 將資料加入雜湊表.
@@ -159,7 +173,7 @@ static int hashtable_add(
 
     // 加入到雜湊表.
     hlist_add_head(&(each_product->hnode), product_hash_table + tidx);
-    DMSG("add [%s/%u] to hash table [%u]", each_product->name, each_product->price, tidx);
+    DMSG("add [%s/%u] to hash table [%zd]", each_product->name, each_product->price, tidx);
 
     return 0;
 }
@@ -180,7 +194,7 @@ static int hashtable_del(
     }
 
     // 從雜湊表刪除.
-    DMSG("del [%s/%u] from hash table [%u]", each_product->name, each_product->price, tidx);
+    DMSG("del [%s/%u] from hash table [%zd]", each_product->name, each_product->price, tidx);
     __hlist_del(&(each_product->hnode));
 
     // 釋放.
@@ -204,7 +218,7 @@ static int hashtable_get(
         return -1;
     }
 
-    DMSG("product [%s/%u] in hash table [%u]", each_product->name, each_product->price, tidx);
+    DMSG("product [%s/%u] in hash table [%zd]", each_product->name, each_product->price, tidx);
 
     return 0;
 }
@@ -215,14 +229,20 @@ static int hashtable_dump(
 {
     size_t tidx;
     struct product_t *each_product;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
     struct hlist_node *each_hnode;
+#endif
 
 
     for(tidx = 0; tidx < MAX_HASH_TABLE_SIZE; tidx++)
     {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
         hlist_for_each_entry(each_product, each_hnode, product_hash_table + tidx, hnode)
+#else
+        hlist_for_each_entry(each_product, product_hash_table + tidx, hnode)
+#endif
         {
-            DMSG("product [%s/%u] in hash table [%u]",
+            DMSG("product [%s/%u] in hash table [%zd]",
                  each_product->name, each_product->price, tidx);
         }
     }
@@ -236,15 +256,23 @@ static int hashtable_clear(
 {
     size_t tidx;
     struct product_t *each_product;
-    struct hlist_node *each_hnode, *tmp_hnode;
+    struct hlist_node *tmp_hnode;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
+    struct hlist_node *each_hnode;
+#endif
 
 
     for(tidx = 0; tidx < MAX_HASH_TABLE_SIZE; tidx++)
     {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
         hlist_for_each_entry_safe(each_product, each_hnode, tmp_hnode,
                                   product_hash_table + tidx, hnode)
+#else
+        hlist_for_each_entry_safe(each_product, tmp_hnode,
+                                  product_hash_table + tidx, hnode)
+#endif
         {
-            DMSG("del [%s/%u] from hash table [%u]",
+            DMSG("del [%s/%u] from hash table [%zd]",
                  each_product->name, each_product->price, tidx);
             __hlist_del(&(each_product->hnode));
             kfree(each_product);

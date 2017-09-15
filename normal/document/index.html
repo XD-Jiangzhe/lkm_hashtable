@@ -755,7 +755,8 @@ void ...(
                 <font class="css_font_g1">pos</font>
               </td>
               <td class="css_td_list2_r">
-                紀錄指向目前雜湊節點的變數
+                紀錄指向目前雜湊節點的變數<br>
+                <font class="css_font_r1">kernel 3.9 之後此參數被移除</font>
               </td>
             </tr>
             <tr>
@@ -782,24 +783,37 @@ void ...(
 {
     size_t tidx;
     struct product_t *each_product;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
     struct hlist_node *each_hnode;
+#endif
 
     // 01. 要走訪哪個雜湊列.
     tidx = ...
 
     // 走訪.
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
     hlist_for_each_entry(each_product, each_hnode, product_hash_table + tidx, hnode)
     {
         // each_product 會指向目前的節點.
         // each_hnode 會指向目前的雜湊節點.
         ...
     }
+#else
+    hlist_for_each_entry(each_product, product_hash_table + tidx, hnode)
+    {
+        // each_product 會指向目前的節點.
+        ...
+    }
+#endif
 
     // 注意 :
-    // 如果在 product_hash_table 無節點存在,
-    //   走訪完畢後 each_product 的值不會改變, each_hnode 會指向 NULL.
-    // 如果在 product_hash_table 有節點存在,
-    //   走訪完畢後 each_product 會指向雜湊列上最後一個節點, each_hnode 會指向 NULL.
+    // kernel 版本小於 3.9 :
+    //   如果在 product_hash_table 無節點存在,
+    //     走訪完畢後 each_product 的值不會改變, each_hnode 會指向 NULL.
+    //   如果在 product_hash_table 有節點存在,
+    //     走訪完畢後 each_product 會指向雜湊列上最後一個節點, each_hnode 會指向 NULL.
+    // kernel 版本大於等於 3.9 :
+    //   走訪完畢後 each_product 會指向 NULL.
 }
 </pre>
         </td>
@@ -833,7 +847,8 @@ void ...(
                 <font class="css_font_g1">pos</font>
               </td>
               <td class="css_td_list2_r">
-                紀錄指向目前雜湊節點的變數
+                紀錄指向目前雜湊節點的變數<br>
+                <font class="css_font_r1">kernel 3.9 之後此參數被移除</font>
               </td>
             </tr>
             <tr>
@@ -869,12 +884,16 @@ void ...(
 {
     size_t tidx;
     struct product_t *each_product;
-    struct hlist_node *each_hnode, *tmp_hnod;
+    struct hlist_node *tmp_hnod;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
+    struct hlist_node *each_hnode;
+#endif
 
     // 01. 要走訪哪個雜湊列.
     tidx = ...
 
     // 走訪.
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
     hlist_for_each_entry_safe(each_product, each_hnode, tmp_hnod, product_hash_table + tidx, hnode)
     {
         // each_product 會指向目前的節點.
@@ -883,12 +902,24 @@ void ...(
         hlist_del(&(each_product->hnode));
         kfree(each_product);
     }
+#else
+    hlist_for_each_entry_safe(each_product, tmp_hnod, product_hash_table + tidx, hnode)
+    {
+        // each_product 會指向目前的節點.
+        // 可以在訪期間刪除節點.
+        hlist_del(&(each_product->hnode));
+        kfree(each_product);
+    }
+#endif
 
     // 注意 :
-    // 如果在 product_hash_table 無節點存在,
-    //   走訪完畢後 each_product 的值不會改變, each_hnode 會指向 NULL.
-    // 如果在 product_hash_table 有節點存在,
-    //   走訪完畢後 each_product 會指向雜湊列上最後一個節點, each_hnode 會指向 NULL.
+    // kernel 版本小於 3.9 :
+    //   如果在 product_hash_table 無節點存在,
+    //     走訪完畢後 each_product 的值不會改變, each_hnode 會指向 NULL.
+    //   如果在 product_hash_table 有節點存在,
+    //     走訪完畢後 each_product 會指向雜湊列上最後一個節點, each_hnode 會指向 NULL.
+    // kernel 版本大於等於 3.9 :
+    //   走訪完畢後 each_product 會指向 NULL.
 }
 </pre>
         </td>
@@ -922,7 +953,8 @@ void ...(
                 <font class="css_font_g1">pos</font>
               </td>
               <td class="css_td_list2_r">
-                從此雜湊節點開始走訪, 紀錄指向目前雜湊節點的變數
+                從此雜湊節點開始走訪, 紀錄指向目前雜湊節點的變數<br>
+                <font class="css_font_r1">kernel 3.9 之後此參數被移除</font>
               </td>
             </tr>
             <tr>
@@ -939,21 +971,37 @@ void ...(
     void)
 {
     struct product_t *each_product;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
     struct hlist_node *each_hnode;
+#endif
 
     // 01. 從哪個節點開始走訪.
     each_product = ...
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
     each_hnode = &(each_product->hnode);
+#endif
 
     // 走訪.
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
     hlist_for_each_entry_from(each_product, each_hnode, hnode)
     {
         // each_product 會指向目前的節點.
         // each_hnode 會指向目前的雜湊節點.
         ...
     }
+#else
+    hlist_for_each_entry_from(each_product, hnode)
+    {
+        // each_product 會指向目前的節點.
+        ...
+    }
+#endif
 
-    // 注意, 走訪完畢後 each_product 會指向雜湊列上最後一個節點, each_hnode 會指向 NULL.
+    // 注意 :
+    // kernel 版本小於 3.9 :
+    //   走訪完畢後 each_product 會指向雜湊列上最後一個節點, each_hnode 會指向 NULL.
+    // kernel 版本大於等於 3.9 :
+    //   走訪完畢後 each_product 會指向 NULL.
 }
 </pre>
         </td>
@@ -987,7 +1035,8 @@ void ...(
                 <font class="css_font_g1">pos</font>
               </td>
               <td class="css_td_list2_r">
-                從此雜湊節點的後一個雜湊節點開始走訪, 紀錄指向目前雜湊節點的變數
+                從此雜湊節點的後一個雜湊節點開始走訪, 紀錄指向目前雜湊節點的變數<br>
+                <font class="css_font_r1">kernel 3.9 之後此參數被移除</font>
               </td>
             </tr>
             <tr>
@@ -1004,21 +1053,37 @@ void ...(
     void)
 {
     struct product_t *each_product;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
     struct hlist_node *each_hnode;
+#endif
 
     // 01. 從此節點的後一個節點開始走訪.
     each_product = ...
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
     each_hnode = &(each_product->hnode);
+#endif
 
     // 走訪.
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
     hlist_for_each_entry_continue(each_product, each_hnode, hnode)
     {
         // each_product 會指向目前的節點.
         // each_hnode 會指向目前的雜湊節點.
         ...
     }
+#else
+    hlist_for_each_entry_continue(each_product, hnode)
+    {
+        // each_product 會指向目前的節點.
+        ...
+    }
+#endif
 
-    // 注意, 走訪完畢後 each_product 會指向雜湊列上最後一個節點, each_hnode 會指向 NULL.
+    // 注意 :
+    // kernel 版本小於 3.9 :
+    //   走訪完畢後 each_product 會指向雜湊列上最後一個節點, each_hnode 會指向 NULL.
+    // kernel 版本大於等於 3.9 :
+    //   走訪完畢後 each_product 會指向 NULL.
 }
 </pre>
         </td>
